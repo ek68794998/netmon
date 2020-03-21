@@ -93,6 +93,31 @@
             return Math.Round(bytesDecimal, precision) + ByteSuffices[i];
         }
 
+        private static IEnumerable<NetworkInterface> GetInternetNetworkInterfaces()
+        {
+            var networkInterfaces = new List<NetworkInterface>();
+
+            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                IPInterfaceProperties properties = networkInterface.GetIPProperties();
+
+                bool isInternet =
+                    networkInterface.OperationalStatus == OperationalStatus.Up
+                    && networkInterface.NetworkInterfaceType != NetworkInterfaceType.Ppp
+                    && networkInterface.NetworkInterfaceType != NetworkInterfaceType.Loopback
+                    && (properties.IsDnsEnabled || properties.IsDynamicDnsEnabled);
+
+                if (!isInternet)
+                {
+                    continue;
+                }
+
+                networkInterfaces.Add(networkInterface);
+            }
+
+            return networkInterfaces;
+        }
+
         private interface ILogger
         {
             void WriteError(string text);
@@ -141,6 +166,8 @@
         {
             private readonly ILogger logger;
 
+            private bool isNetworkAvailable = true;
+
             public NetworkAvailabilityMonitor(ILogger logger)
             {
                 this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -154,9 +181,7 @@
 
             public Task<bool> UpdateAsync()
             {
-                bool isNetworkAvailable = NetworkInterface.GetIsNetworkAvailable();
-
-                if (!isNetworkAvailable)
+                if (!this.isNetworkAvailable)
                 {
                     this.logger.WriteMessage("Network unavailable.");
 
@@ -168,7 +193,9 @@
 
             private void OnNetworkAvailabilityChanged(object sender, NetworkAvailabilityEventArgs args)
             {
-                string statusString = args.IsAvailable ? "Available" : "Unavailable";
+                this.isNetworkAvailable = args.IsAvailable;
+
+                string statusString = this.isNetworkAvailable ? "Available" : "Unavailable";
 
                 this.logger.WriteMessage($"Network changed. ({statusString})");
             }
@@ -222,11 +249,8 @@
                 if (pingReply.Status == IPStatus.TimedOut)
                 {
                     this.logger.WriteMessage($"Ping to {this.ipAddress} timed out.");
-
-                    return false;
                 }
-
-                if (pingReply.Status == IPStatus.Success)
+                else if (pingReply.Status == IPStatus.Success)
                 {
                     this.logger.WriteMessage(
                         $"Ping to {this.ipAddress} returned in {pingReply.RoundtripTime} ms.");
@@ -266,27 +290,12 @@
 
             public Task<bool> UpdateAsync()
             {
-                NetworkInterface[] networkInterfaces = NetworkInterface.GetAllNetworkInterfaces();
-
                 long bytesIn = 0,
                      bytesOut = 0,
                      packetsLost = 0;
 
-                foreach (NetworkInterface networkInterface in networkInterfaces)
+                foreach (NetworkInterface networkInterface in GetInternetNetworkInterfaces())
                 {
-                    IPInterfaceProperties properties = networkInterface.GetIPProperties();
-
-                    bool isInternet =
-                        networkInterface.OperationalStatus == OperationalStatus.Up
-                        && networkInterface.NetworkInterfaceType != NetworkInterfaceType.Ppp
-                        && networkInterface.NetworkInterfaceType != NetworkInterfaceType.Loopback
-                        && (properties.IsDnsEnabled || properties.IsDynamicDnsEnabled);
-
-                    if (!isInternet)
-                    {
-                        continue;
-                    }
-
                     IPv4InterfaceStatistics statistics = networkInterface.GetIPv4Statistics();
 
                     bytesIn += statistics.BytesReceived;
