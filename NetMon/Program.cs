@@ -6,11 +6,11 @@
 
     public class Program
     {
-        private static readonly string LogFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.log";
+        private static readonly string LogFileName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
         public static async Task<int> Main(string[] args)
         {
-            var logger = new Logger(LogFile);
+            var logger = new Logger(LogFileName);
 
             logger.WriteMessage(new string('-', 50));
             logger.WriteMessage($"Starting up NetMon...");

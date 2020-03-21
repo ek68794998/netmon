@@ -6,30 +6,37 @@
 
     public class Logger : ILogger
     {
-        private readonly string logFile;
+        private readonly string logFileName;
 
-        public Logger(string logFile)
+        public Logger(string logFileName)
         {
-            this.logFile = logFile ?? throw new ArgumentNullException(nameof(logFile));
+            this.logFileName = logFileName ?? throw new ArgumentNullException(nameof(logFileName));
         }
 
         public void WriteError(string text)
         {
-            this.WriteTextRaw($"[E] {text}");
+            this.WriteTextRaw("E", text);
         }
 
         public void WriteMessage(string text)
         {
-            this.WriteTextRaw($"[M] {text}");
+            this.WriteTextRaw("M", text);
         }
 
-        private void WriteTextRaw(string text)
+        private void WriteTextRaw(string prefix, string text)
         {
             var now = DateTime.Now;
-            string time =
+
+            string timestamp =
                 $"{now.ToString("d", System.Threading.Thread.CurrentThread.CurrentCulture)} {now.ToString("HH:mm:ss.fffffff")}";
 
-            File.AppendAllLines(this.logFile, text.Split('\n').Select(l => $"{time}  {l}"));
+            string fileName =
+                $"{logFileName}.{now.ToString("yyyy.MM.dd")}.log";
+
+            File.AppendAllLines(
+                fileName,
+                text.Replace("\r", string.Empty).Split('\n').Select(l => $"{timestamp}  [{prefix}] {l}"));
+
             Console.WriteLine(text);
         }
     }
