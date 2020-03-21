@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "NetMon": {
+      "commandName": "Project",
+      "commandLineArgs": "https://google.com 1000"
+    }
+  }
+}
