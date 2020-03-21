@@ -61,15 +61,34 @@
                     continue;
                 }
 
+                NetworkInterface[] networkInterfaces = NetworkInterface.GetAllNetworkInterfaces();
+
+                long bytesIn = 0,
+                     bytesOut = 0,
+                     packetsLost = 0;
+
+                foreach (NetworkInterface networkInterface in networkInterfaces)
+                {
+                    IPv4InterfaceStatistics statistics = networkInterface.GetIPv4Statistics();
+
+                    bytesIn += statistics.BytesReceived;
+                    bytesOut += statistics.BytesSent;
+                    packetsLost += statistics.IncomingPacketsDiscarded + statistics.IncomingPacketsWithErrors;
+                }
+
                 var ping = new Ping();
 
                 var pingReply = await ping.SendPingAsync(ipAddress, PingTimeoutMilliseconds);
 
-                Console.WriteLine($"Ping to {pingReply.Address} returned in {pingReply.RoundtripTime} ms. ({pingReply.Status})");
+                Console.WriteLine(
+                    $"Bytes in: {bytesIn}, bytes out: {bytesOut}, packets lost: {packetsLost}.");
+
+                Console.WriteLine(
+                    $"Ping to {pingReply.Address} returned in {pingReply.RoundtripTime} ms. ({pingReply.Status})");
             }
         }
 
-        public static void OnNetworkAvailabilityChanged(object sender, NetworkAvailabilityEventArgs args)
+        private static void OnNetworkAvailabilityChanged(object sender, NetworkAvailabilityEventArgs args)
         {
             string statusString = args.IsAvailable ? "Available" : "Unavailable";
 
