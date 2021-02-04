@@ -28,10 +28,10 @@
             var now = DateTime.Now;
 
             string timestamp =
-                $"{now.ToString("d", System.Threading.Thread.CurrentThread.CurrentCulture)} {now.ToString("HH:mm:ss.fffffff")}";
+                $"{now.ToString("d", System.Threading.Thread.CurrentThread.CurrentCulture)} {now:HH:mm:ss.fffffff}";
 
             string fileName =
-                $"{logFileName}.{now.ToString("yyyy.MM.dd")}.log";
+                $"{logFileName}.{now:yyyy.MM.dd}.log";
 
             File.AppendAllLines(
                 fileName,
